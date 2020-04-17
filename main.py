@@ -8,9 +8,8 @@ import ujson
 from simple import MQTTClient
 
 # -----------------------------------------Parameter Init---------------------------------------------------------------
-killswitch = Pin(16, Pin.OUT)  #kill switch
+killswitch = Pin(16, Pin.OUT)  # kill switch
 killswitch.value(1)
-
 oldencdata = 0b0000
 encdata = 0b0000
 debouncetime = 150
@@ -19,22 +18,17 @@ updatescreen = 1
 dispcursor = 0
 pnr = 0
 ticktock = 0
-
-Menu0 = ["id1", "id2", "id3", "id4", "id5", "id6", "id7", "id8", "id9", "id10"]
-Value0 = ["off", "off", "0", "20", "40", "600", "80", "100", "on", "off", "ON", "OFF"]
-Value1 = ["0", "10", "20", "30", "40", "23", "600", "70", "26", "90", "100", "30"]
-datatype = [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2]
-
+Menu0 = ["id1", "id2", "id3", "id4"]
+Value0 = ["off", "off", "0", "20"]
+Value1 = ["0", "10", "22", "30"]
+datatype = [0, 1, 2, 0]
 
 # -------------------------------------------Read the Secrets.json------------------------------------------------------
 with open('secrets.json', 'r') as openfile:
     # file includes   "devicename", "SSID", "SSIDpass", "StaticIP", "mqttserver", "mqttusername", "mqttpass",
-    #"topicpub", "topicsub",
+    # "topicpub", "topicsub",
     secrets = ujson.load(openfile)
-
-
-
-#--------------------------------------------MQTT connection-----------------------------------------------------------
+# --------------------------------------------MQTT connection-----------------------------------------------------------
 def mqttpublisher():
     global mqttobject
     initialmsg = {}
@@ -42,11 +36,13 @@ def mqttpublisher():
     initialmsgjson = ujson.dumps(initialmsg)
     mqttobject.publish(secrets["topicpub"], initialmsgjson)
 
+
 def mqttconfig(v):
     global mqttobject
     if wlan.isconnected():
         mqttconn.deinit()
-        mqttobject = MQTTClient(secrets["devicename"], secrets["mqttserver"], port=1883, user=secrets["mqttusername"], password=secrets["mqttpass"])
+        mqttobject = MQTTClient(secrets["devicename"], secrets["mqttserver"], port=1883, user=secrets["mqttusername"],
+                                password=secrets["mqttpass"])
         mqttobject.set_callback(mqttcallback)
         mqttobject.connect()
         mqttobject.subscribe(secrets["topicsub"])
@@ -57,11 +53,17 @@ def mqttconfig(v):
 def mqttcallback(topic, msg):
     global updatescreen
     rcvmsg = ujson.loads(msg)
-    Value0[rcvmsg["id"]] = rcvmsg["value0"]
-    Value1[rcvmsg["id"]] = rcvmsg["value1"]
-    if "name" in rcvmsg:
-        Menu0[rcvmsg["id"]] = rcvmsg["name"]
-        datatype[rcvmsg["id"]] = rcvmsg["type"]
+    try:
+        Value0[rcvmsg["id"]] = rcvmsg["value0"]
+        Value1[rcvmsg["id"]] = rcvmsg["value1"]
+        if "name" in rcvmsg:
+           Menu0[rcvmsg["id"]] = rcvmsg["name"]
+           datatype[rcvmsg["id"]] = rcvmsg["type"]
+    except:  # this is a new line
+        Value0.append(rcvmsg["value0"])
+        Value1.append(rcvmsg["value1"])
+        Menu0.append(rcvmsg["name"])
+        datatype.append(rcvmsg["type"])
     updatescreen = 1
 
 
@@ -91,17 +93,23 @@ def dispcursorupdate(incdec):
             Value1[dispcursor] = "0"
         if int(Value1[dispcursor]) > 100:
             Value1[dispcursor] = "100"
+        updatemsg = {"id": dispcursor, "value0": Value0[dispcursor], "value1": Value1[dispcursor]}
+        updatemsgjson = ujson.dumps(updatemsg)
+        mqttobject.publish(secrets["topicpub"], updatemsgjson)
     elif datatype[dispcursor] == 2:  # set temp
-        Value1[dispcursor] = str(int(Value1[dispcursor]) + incdec)
+        Value1[dispcursor] = str(int(Value1[dispcursor]) + incdec)  # --------------------------bir sender buraya
         pnr = 1
         if int(Value1[dispcursor]) < 18:
             Value1[dispcursor] = "18"
         if int(Value1[dispcursor]) > 30:
             Value1[dispcursor] = "30"
+        updatemsg = {"id": dispcursor, "value0": Value0[dispcursor], "value1": Value1[dispcursor]}
+        updatemsgjson = ujson.dumps(updatemsg)
+        mqttobject.publish(secrets["topicpub"], updatemsgjson)
 
 
 def encmove(v):
-    irq_state = machine.disable_irq()  # Start of critical section
+    irq_state = machine.disable_irq()
     global value, encdata, oldencdata, oled, dispcursor, updatescreen, ticktock
     encdata = (encA.value() << 1) | encB.value()
     if ((oldencdata | encdata) == 0b0001) or ((oldencdata | encdata) == 0b1110):  # CW turn.
@@ -114,18 +122,26 @@ def encmove(v):
     ticktock = utime.ticks_ms()
     killme.init(period=15000, mode=Timer.ONE_SHOT, callback=shutdown)
 
+
 def encbutprss(a):
     global debouncetime, lastbouncetime, updatescreen, dispcursor, pnr, ticktock
-    irq_state = machine.disable_irq()  # Start of critical section
-    now = utime.ticks_ms()  # get current time
+    irq_state = machine.disable_irq()
+    now = utime.ticks_ms()
     if now - lastbouncetime > debouncetime and pnr == 0:
-        mqttpublisher()
+
         ticktock = utime.ticks_ms()
         killme.init(period=15000, mode=Timer.ONE_SHOT, callback=shutdown)
         if Value0[dispcursor] == "off":
             Value0[dispcursor] = "on"
+            if datatype[dispcursor] != 2:
+                Value1[dispcursor] = "100"
         else:
             Value0[dispcursor] = "off"
+            if datatype[dispcursor] != 2:
+                Value1[dispcursor] = "0"
+        updatemsg = {"id": dispcursor, "value0": Value0[dispcursor], "value1": Value1[dispcursor]}
+        updatemsgjson = ujson.dumps(updatemsg)
+        mqttobject.publish(secrets["topicpub"], updatemsgjson)
     pnr = 0
     lastbouncetime = now
     updatescreen = 1
@@ -138,7 +154,8 @@ def screenhandler(v):  # lasts 78 ms
         if dispcursor <= -1:
             dispcursor = -1
             oled.text("Battery:", 0, 0)
-            oled.text(str(pot.read()), 64, 0)
+            batlvl = int(((pot.read() - 0) / (960 - 0)) * (100 - 0) + 0)
+            oled.text(str(batlvl), 64, 0)
             oled.text("SSID:", 0, 10)
             oled.text(secrets["SSID"], 38, 10)
             oled.text("IP:", 0, 20)
@@ -149,7 +166,7 @@ def screenhandler(v):  # lasts 78 ms
         else:
             if dispcursor > len(Menu0) - 1:
                 dispcursor = len(Menu0) - 1
-            oled.text(">", 0, (dispcursor % 6) * 10)  # cursor
+            oled.text(">", 0, (dispcursor % 6) * 10)
             if dispcursor // 6 < (len(Menu0) - 1) // 6:
                 rmax = (dispcursor // 6 + 1) * 6
             else:
@@ -167,10 +184,11 @@ def shutdown(v):
     killswitch.value(0)
     print("goodby cruel world")
 
+
 # ----------------------------------------------Tickers-----------------------------------------------------------------
-fps = Timer(1)  # create tim object
-fps.init(period=150, mode=Timer.PERIODIC, callback=screenhandler)  # tim init,callback blink() per second
-#timer2: mqttconn
+fps = Timer(1)
+fps.init(period=150, mode=Timer.PERIODIC, callback=screenhandler)
+# timer2: mqttconn
 killme = Timer(3)
 killme.init(period=15000, mode=Timer.ONE_SHOT, callback=shutdown)
 # ----------------------------------------------IO Setup----------------------------------------------------------------
@@ -180,27 +198,21 @@ oled_height = 64
 oled = ssd1306.SSD1306_I2C(oled_width, oled_height, i2c)
 pot = ADC(0)
 
-encA = Pin(12, Pin.IN, Pin.PULL_UP)  # create Button object from pin15,Set Pin15 to input
+encA = Pin(12, Pin.IN, Pin.PULL_UP)#create encoder
 encA.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=encmove)
 encB = Pin(13, Pin.IN, Pin.PULL_UP)
 encB.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=encmove)
-encbut = Pin(14, Pin.IN)  # create Button object from pin15,Set Pin15 to input
+encbut = Pin(14, Pin.IN)
 encbut.irq(trigger=Pin.IRQ_FALLING, handler=encbutprss)
 
+"""
 def main():
     if utime.ticks_ms() - ticktock > 15000:
         shutdown(0)
+"""
 
 # ---------------------------------------------------Main Loop-----------------------------------------------------------
-
 if __name__ == '__main__':
-    #main()
+    # main()
     pass
-"""
-while True:#bu döngü işlemciyi şişiriyor.
-    if utime.ticks_ms() - ticktock > 15000:
-        shutdown(0)
-"""
-#if main nasıl cagırılabilir
-
 # -------------------------------------------------End of Main Loop------------------------------------------------------
