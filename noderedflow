@@ -1,0 +1,357 @@
+[
+    {
+        "id": "1c7bef7c.9bfa81",
+        "type": "mqtt in",
+        "z": "76d9028f.add9bc",
+        "name": "kumanda1 payload in",
+        "topic": "kumanda1/in",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "",
+        "x": 160,
+        "y": 120,
+        "wires": [
+            [
+                "cf065003.2360f"
+            ]
+        ]
+    },
+    {
+        "id": "cf065003.2360f",
+        "type": "function",
+        "z": "76d9028f.add9bc",
+        "name": "shape remote in",
+        "func": "if (msg.payload.id==99) return [null, msg]; \nreturn msg;",
+        "outputs": 2,
+        "noerr": 0,
+        "x": 360,
+        "y": 120,
+        "wires": [
+            [
+                "eb87604f.93fdb"
+            ],
+            [
+                "c35c8e20.0879a"
+            ]
+        ]
+    },
+    {
+        "id": "6a646972.c91a98",
+        "type": "server-state-changed",
+        "z": "76d9028f.add9bc",
+        "name": "",
+        "server": "640a9cd6.647374",
+        "version": 1,
+        "entityidfilter": "light,switch,climate",
+        "entityidfiltertype": "substring",
+        "outputinitially": false,
+        "state_type": "str",
+        "haltifstate": "",
+        "halt_if_type": "str",
+        "halt_if_compare": "is",
+        "outputs": 1,
+        "output_only_on_state_change": false,
+        "x": 330,
+        "y": 420,
+        "wires": [
+            [
+                "db640cf5.6d381"
+            ]
+        ]
+    },
+    {
+        "id": "a3639c0c.608c",
+        "type": "mqtt out",
+        "z": "76d9028f.add9bc",
+        "name": "",
+        "topic": "kumanda1/out",
+        "qos": "0",
+        "retain": "true",
+        "broker": "",
+        "x": 1170,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "6fda9f4e.4a429",
+        "type": "function",
+        "z": "76d9028f.add9bc",
+        "name": "shape remote out",
+        "func": "for (var i=0; i<msg.config.length;i++) {\n    if(msg.topic==msg.config[i].HAid){\n        if(msg.config[i].type==2){//climate controller\n        msg.payload = { id: msg.config[i].id, value1: msg.data.new_state.attributes.current_temperature};\n        msg.payload.value1 = Math.round(msg.payload.value1);\n            if(msg.data.state==\"off\") msg.payload.value0= msg.data.state;\n            else {\n            msg.payload.value0= msg.data.attributes.temperature;\n            msg.payload.value0 = Math.round(msg.payload.value0);\n            }\n        }\n        else{\n        msg.payload = { id: msg.config[i].id, value0: msg.data.new_state.state , value1: msg.data.new_state.attributes.brightness};  \n        if(msg.payload.value1==null) msg.payload.value1 = 0;\n        msg.payload.value1 = Math.round(((msg.payload.value1 - 0) / (254 - 0)) * (100 - 0) + 0);\n        }\n        return [msg];\n    }\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 730,
+        "y": 420,
+        "wires": [
+            [
+                "65c386aa.dc2118"
+            ]
+        ]
+    },
+    {
+        "id": "c35c8e20.0879a",
+        "type": "function",
+        "z": "76d9028f.add9bc",
+        "name": "config file",
+        "func": "//id is the number of the item on the screen of remote controller.\n//HAid is the name of the item on Home Assistant.\n//name is the name of the item on the screen of the remote controller.\n//type is the type of the item. 0: switch, 1: dimmer, 2: temperature controller\n\nmsg.config =   [{ id: 0, HAid: \"light.top\", name: \"Top\", type: 1},\n                { id: 1, HAid: \"light.sofa\", name: \"Sofa\", type: 1},\n                { id: 2, HAid: \"light.bed\", name: \"Bed\", type: 1},\n                { id: 3, HAid: \"light.table\", name: \"Table\", type: 1},\n                { id: 4, HAid: \"switch.pc_power\", name: \"Pc power\", type: 0},\n                { id: 5, HAid: \"switch.pj_bright_mode\", name: \"PJ bright\", type: 0},\n                { id: 6, HAid: \"climate.kombi\", name: \"Boiler\", type: 2},];\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 520,
+        "y": 240,
+        "wires": [
+            [
+                "4a477273.96eb0c"
+            ]
+        ]
+    },
+    {
+        "id": "2dc13b03.613704",
+        "type": "api-current-state",
+        "z": "76d9028f.add9bc",
+        "name": "",
+        "server": "640a9cd6.647374",
+        "version": 1,
+        "outputs": 1,
+        "halt_if": "",
+        "halt_if_type": "str",
+        "halt_if_compare": "is",
+        "override_topic": false,
+        "entity_id": "",
+        "state_type": "str",
+        "state_location": "",
+        "override_payload": "none",
+        "entity_location": "data",
+        "override_data": "msg",
+        "blockInputOverrides": false,
+        "x": 760,
+        "y": 340,
+        "wires": [
+            [
+                "867fb6be.668c28"
+            ]
+        ]
+    },
+    {
+        "id": "f5486437.b60468",
+        "type": "function",
+        "z": "76d9028f.add9bc",
+        "name": "ask HA",
+        "func": "msg.payload = { entity_id: msg.config[msg.count].HAid};\n//msg.payload = { entity_id: msg.config[msg.loop.counter-1].HAid};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 610,
+        "y": 340,
+        "wires": [
+            [
+                "2dc13b03.613704"
+            ]
+        ]
+    },
+    {
+        "id": "867fb6be.668c28",
+        "type": "function",
+        "z": "76d9028f.add9bc",
+        "name": "shape message",
+        "func": "if(msg.config[msg.count].type==2){\n    msg.payload = {id: msg.count, name:msg.config[msg.count].name, value1: msg.data.attributes.current_temperature, type: msg.config[msg.count].type};\n    msg.payload.value1 = Math.round(msg.payload.value1);\n    if(msg.data.state==\"off\") msg.payload.value0 = msg.data.state;\n    else{\n    msg.payload.value0 = msg.data.attributes.temperature;\n    msg.payload.value0 = Math.round(msg.payload.value0);\n    }\n}\nelse{\n    msg.payload = { id: msg.count, name:msg.config[msg.count].name, value0: msg.data.state , value1: msg.data.attributes.brightness, type:msg.config[msg.count].type};\n    if(msg.payload.value1==null)msg.payload.value1=0;\n    msg.payload.value1= ((msg.payload.value1 - 0) / (254 - 0))* (100 - 0) + 0;\n    }\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 930,
+        "y": 340,
+        "wires": [
+            [
+                "1a8bb599.e2716a",
+                "a3639c0c.608c"
+            ]
+        ]
+    },
+    {
+        "id": "4a477273.96eb0c",
+        "type": "function",
+        "z": "76d9028f.add9bc",
+        "name": "set config to flow",
+        "func": "flow.set(\"config\",msg.config);\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 300,
+        "y": 340,
+        "wires": [
+            [
+                "1a8bb599.e2716a"
+            ]
+        ]
+    },
+    {
+        "id": "eb87604f.93fdb",
+        "type": "function",
+        "z": "76d9028f.add9bc",
+        "name": "flow returner",
+        "func": "msg.config = flow.get(\"config\");\nflow.set(\"lastmessage\",msg.payload);\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 530,
+        "y": 120,
+        "wires": [
+            [
+                "ccd424ce.b00258"
+            ]
+        ]
+    },
+    {
+        "id": "db640cf5.6d381",
+        "type": "function",
+        "z": "76d9028f.add9bc",
+        "name": "flow returner",
+        "func": "msg.config = flow.get(\"config\");\nmsg.lastmessage = flow.get(\"lastmessage\");\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 560,
+        "y": 420,
+        "wires": [
+            [
+                "6fda9f4e.4a429"
+            ]
+        ]
+    },
+    {
+        "id": "65c386aa.dc2118",
+        "type": "function",
+        "z": "76d9028f.add9bc",
+        "name": "feedback destroyer",
+        "func": "if(msg.payload.value0!=msg.lastmessage.value0&&msg.payload.value1!=msg.lastmessage.value1) return msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 920,
+        "y": 420,
+        "wires": [
+            [
+                "a3639c0c.608c"
+            ]
+        ]
+    },
+    {
+        "id": "ce299ce1.4e6a4",
+        "type": "api-call-service",
+        "z": "76d9028f.add9bc",
+        "name": "",
+        "server": "640a9cd6.647374",
+        "version": 0,
+        "service_domain": "homeassistant",
+        "service": "{}",
+        "data": "{}",
+        "mergecontext": "",
+        "output_location": "payload",
+        "output_location_type": "msg",
+        "mustacheAltTags": false,
+        "x": 880,
+        "y": 100,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "ccd424ce.b00258",
+        "type": "function",
+        "z": "76d9028f.add9bc",
+        "name": "shape message",
+        "func": "if(msg.config[msg.payload.id].type==2){\n    if(msg.payload.value0!=\"off\") msg.payload = { service: \"set_temperature\", data: {\"entity_id\": msg.config[msg.payload.id].HAid, \"temperature\": msg.payload.value0 } };\n    else msg.payload = { service: \"turn_off\", data: {\"entity_id\": msg.config[msg.payload.id].HAid}, \"hvac_mode\":\"off\" };\n    return [null, msg];\n    }\n    else{\n    if(msg.payload.value0){\n    msg.payload.value1= ((msg.payload.value1 - 0) / (100 - 0))* (254 - 0) + 0;\n    msg.payload = { service: \"turn_on\", data: {\"entity_id\": msg.config[msg.payload.id].HAid,\"brightness\": msg.payload.value1 } };\n    }\n    else msg.payload = { service: \"turn_off\", data: {\"entity_id\": msg.config[msg.payload.id].HAid} };\n    return msg;\n}",
+        "outputs": 2,
+        "noerr": 0,
+        "x": 690,
+        "y": 120,
+        "wires": [
+            [
+                "ce299ce1.4e6a4"
+            ],
+            [
+                "f5e0c7ee.451c48"
+            ]
+        ]
+    },
+    {
+        "id": "f5e0c7ee.451c48",
+        "type": "api-call-service",
+        "z": "76d9028f.add9bc",
+        "name": "",
+        "server": "640a9cd6.647374",
+        "service_domain": "climate",
+        "service": "",
+        "data": "",
+        "mergecontext": "",
+        "output_location": "payload",
+        "output_location_type": "msg",
+        "mustacheAltTags": false,
+        "x": 850,
+        "y": 140,
+        "wires": [
+            [
+                "2b45954a.cf1f6a"
+            ]
+        ]
+    },
+    {
+        "id": "2b45954a.cf1f6a",
+        "type": "function",
+        "z": "76d9028f.add9bc",
+        "name": "turn on climate",
+        "func": "if(msg.payload.service==\"set_temperature\"){\nmsg.payload = { service: \"turn_on\", data: {\"entity_id\": msg.payload.data.entity_id} };\nreturn msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1010,
+        "y": 140,
+        "wires": [
+            [
+                "fdb03507.946058"
+            ]
+        ]
+    },
+    {
+        "id": "fdb03507.946058",
+        "type": "api-call-service",
+        "z": "76d9028f.add9bc",
+        "name": "",
+        "server": "640a9cd6.647374",
+        "service_domain": "climate",
+        "service": "",
+        "data": "",
+        "mergecontext": "",
+        "output_location": "payload",
+        "output_location_type": "msg",
+        "mustacheAltTags": false,
+        "x": 1170,
+        "y": 140,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "1a8bb599.e2716a",
+        "type": "counter-loop",
+        "z": "76d9028f.add9bc",
+        "name": "counter",
+        "counter": "count",
+        "counterType": "msg",
+        "reset": false,
+        "resetValue": "value-null",
+        "initial": 0,
+        "initialType": "num",
+        "operator": "lt",
+        "termination": "config.length",
+        "terminationType": "msg",
+        "increment": 1,
+        "incrementType": "num",
+        "x": 470,
+        "y": 340,
+        "wires": [
+            [],
+            [
+                "f5486437.b60468"
+            ]
+        ]
+    },
+    {
+        "id": "640a9cd6.647374",
+        "type": "server",
+        "z": "",
+        "name": "Home Assistant"
+    }
+]
