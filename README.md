@@ -1,6 +1,5 @@
 # micropython-remotecontroller
 ESP8266 based smart remote controller. Code works on micropython.  
-Please remember that this project is still on Alpha phase.  
 The version with the C++: https://github.com/erdikusdemir/smarthome-wifi-remote  
 
 # DESCRIPTION 
@@ -26,6 +25,24 @@ Hardware is consist of;
 <img src="https://github.com/erdikusdemir/micropython-remotecontroller/blob/master/remote_insidecover.jpg" width="600">
 <img src="https://github.com/erdikusdemir/micropython-remotecontroller/blob/master/Schematic.PNG" width="800">
 
+
+# Micropython installation and code upload:  
+1. Install python core from here https://www.python.org/downloads/  
+2. Download esptool from here https://github.com/espressif/esptool/releases and unzip in a folder  
+3. Download esp8266 micropython firmware from here https://micropython.org/download/esp8266/ (you can pick the recent stable release)  
+4. open console in your operating system. for windows: cmd
+5. go to the directery of esptool.py  for windows example: cd C:\Users\"user"\Desktop\esptool-master
+6. connect the chip to the PC  
+7. run "python esptool.py --chip esp8266 erase_flash" (COM port will be showed on the screen. Please note the COM port for the next step(s))  
+8. after erase completed run flash code "python esptool.py --port COM7 --baud 460800 write_flash --flash_size=4MB 0 C:\Users\"user"\esp8266-2020.bin" (Don't forget to change your COM port and the full directory of the micropython firmware.)  
+9. Edit the secrets.json file according to your credentials and save it  
+10. Now we can upload the code. Download "uPyloader" from here https://github.com/BetaRavener/uPyLoader/releases  
+11. Run the program and connect to your device. After the first connection a popup window will show up. Say ok and go to File -> Init transfer files. After program sends two files you should see the programs inside the chip  
+12. Go to File -> Navigate and select the project folder  
+13. On the left side you should see the project files. Select the files with .py extention and the "secrets.json" and press transfer. 
+14. After transfer completed hard reset the device and you should good to go  
+15. Bravo!  
+
 # Instructions:  
 1. Follow the schematic and build the hardware,  
 2.1. Modify the secret.json file according to your credentials,  
@@ -37,7 +54,6 @@ Hardware is consist of;
 4.4. Deploy the node and everything should works.  
 
 # To do list:
-1. Code still does not send mqtt message to the server.  
-2. ESP chip being very slow to connect to the wifi. This needs to be fasten up somehow.  
+1. ESP chip being very slow to connect to the wifi. This needs to be fasten up somehow. Chip develops an issue when erasing the settings.  
 3. Case design needs to be finished.  
 
