@@ -37,7 +37,7 @@ Hardware is consist of;
 4.4. Deploy the node and everything should works.  
 
 # To do list:
-1. Code still does not mqtt message to the server.  
+1. Code still does not send mqtt message to the server.  
 2. ESP chip being very slow to connect to the wifi. This needs to be fasten up somehow.  
 3. Case design needs to be finished.  
 
