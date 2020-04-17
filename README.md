@@ -1,6 +1,6 @@
 # micropython-remotecontroller
 ESP8266 based smart remote controller. Code works on micropython.
-The version with the C++: https://github.com/erdikusdemir/smarthome-wifi-remote-tcp  
+The version with the C++: https://github.com/erdikusdemir/smarthome-wifi-remote  
 
 # DESCRIPTION 
 
@@ -22,8 +22,8 @@ Hardware is consist of;
 8. 2222A NPN transistor,  
 9. 330, 1 k, and 1 MOhm resistors.  
 
-<img src="https://github.com/erdikusdemir/smarthome-wifi-remote/blob/master/remote_insidecover.jpg" width="600">
-<img src="https://github.com/erdikusdemir/smarthome-wifi-remote/blob/master/Schematic.PNG" width="800">
+<img src="https://github.com/erdikusdemir/micropython-remotecontroller/blob/master/remote_insidecover.jpg" width="600">
+<img src="https://github.com/erdikusdemir/micropython-remotecontroller/blob/master/Schematic.PNG" width="800">
 
 # Instructions:  
 1. Follow the schematic and build the hardware,  
