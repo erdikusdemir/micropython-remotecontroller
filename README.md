@@ -1,5 +1,6 @@
 # micropython-remotecontroller
-ESP8266 based smart remote controller. Code works on micropython.
+ESP8266 based smart remote controller. Code works on micropython.  
+Please remember that this project is still on Alpha phase.  
 The version with the C++: https://github.com/erdikusdemir/smarthome-wifi-remote  
 
 # DESCRIPTION 
