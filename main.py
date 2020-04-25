@@ -8,6 +8,9 @@ import ujson
 from simple import MQTTClient
 
 # -----------------------------------------Parameter Init---------------------------------------------------------------
+
+print(utime.ticks_ms())
+wlan = network.WLAN(network.STA_IF)
 killswitch = Pin(16, Pin.OUT)  # kill switch
 killswitch.value(1)
 oldencdata = 0b0000
@@ -17,17 +20,20 @@ lastbouncetime = 0
 updatescreen = 1
 dispcursor = 0
 pnr = 0
-ticktock = 0
+
 Menu0 = ["id1", "id2", "id3", "id4"]
 Value0 = ["off", "off", "0", "20"]
 Value1 = ["0", "10", "22", "30"]
 datatype = [0, 1, 2, 0]
+youkilledme = 0
+mqttisready = 0
 
 # -------------------------------------------Read the Secrets.json------------------------------------------------------
-with open('secrets.json', 'r') as openfile:
+#now this part is in boot.py
+"""with open('secrets.json', 'r') as openfile:
     # file includes   "devicename", "SSID", "SSIDpass", "StaticIP", "mqttserver", "mqttusername", "mqttpass",
     # "topicpub", "topicsub",
-    secrets = ujson.load(openfile)
+    secrets = ujson.load(openfile)"""
 # --------------------------------------------MQTT connection-----------------------------------------------------------
 def mqttpublisher():
     global mqttobject
@@ -38,17 +44,17 @@ def mqttpublisher():
 
 
 def mqttconfig(v):
-    global mqttobject
+    global mqttobject, mqttisready
     if wlan.isconnected():
-        mqttconn.deinit()
+        #mqttconn.deinit()
         mqttobject = MQTTClient(secrets["devicename"], secrets["mqttserver"], port=1883, user=secrets["mqttusername"],
                                 password=secrets["mqttpass"])
         mqttobject.set_callback(mqttcallback)
         mqttobject.connect()
         mqttobject.subscribe(secrets["topicsub"])
         mqttpublisher()
-        mqttconn.init(period=150, mode=Timer.PERIODIC, callback=newmsg)
-
+        #mqttconn.init(period=150, mode=Timer.PERIODIC, callback=newmsg)
+        mqttisready = 2
 
 def mqttcallback(topic, msg):
     global updatescreen
@@ -67,18 +73,23 @@ def mqttcallback(topic, msg):
     updatescreen = 1
 
 
+
 def newmsg(v):
     global mqttobject
     mqttobject.check_msg()
 
 
 # -------------------------------------------WIFI connection-----------------------------------------------------------
-wlan = network.WLAN(network.STA_IF)
+#now this part is in boot.py
+"""wlan = network.WLAN(network.STA_IF)
 if not wlan.isconnected():
     wlan.active(True)
+    #wlan.scan()
+    wlan.ifconfig(('192.168.1.59', '255.255.255.0', '192.168.1.1', '192.168.1.1'))
     wlan.connect(secrets["SSID"], secrets["SSIDpass"])
-    mqttconn = Timer(2)
-    mqttconn.init(mode=Timer.PERIODIC, period=200, callback=mqttconfig)  # one shot firing after 1000ms
+    #mqttconn = Timer(2)
+    #mqttconn.init(mode=Timer.PERIODIC, period=200, callback=mqttconfig)  # one shot firing after 1000ms
+"""
 # ------------------------------------------Functions-------------------------------------------------------------------
 
 
@@ -120,7 +131,7 @@ def encmove(v):
     machine.enable_irq(irq_state)
     updatescreen = 1
     ticktock = utime.ticks_ms()
-    killme.init(period=15000, mode=Timer.ONE_SHOT, callback=shutdown)
+    #killme.init(period=15000, mode=Timer.ONE_SHOT, callback=shutdown)
 
 
 def encbutprss(a):
@@ -130,7 +141,7 @@ def encbutprss(a):
     if now - lastbouncetime > debouncetime and pnr == 0:
 
         ticktock = utime.ticks_ms()
-        killme.init(period=15000, mode=Timer.ONE_SHOT, callback=shutdown)
+        #killme.init(period=15000, mode=Timer.ONE_SHOT, callback=shutdown)
         if Value0[dispcursor] == "off":
             Value0[dispcursor] = "on"
             if datatype[dispcursor] != 2:
@@ -149,7 +160,7 @@ def encbutprss(a):
 
 
 def screenhandler(v):  # lasts 78 ms
-    global dispcursor, updatescreen, SSID, mqttobject
+    global dispcursor, updatescreen, SSID, mqttobject, screentimer
     if updatescreen:
         if dispcursor <= -1:
             dispcursor = -1
@@ -178,19 +189,24 @@ def screenhandler(v):  # lasts 78 ms
         oled.show()  # lasts 70 ms
         oled.fill(0)
         updatescreen = 0
+        screentimer = utime.ticks_ms()
 
 
 def shutdown(v):
+    global youkilledme
     killswitch.value(0)
     print("goodby cruel world")
+    youkilledme = 1
 
 
 # ----------------------------------------------Tickers-----------------------------------------------------------------
-fps = Timer(1)
-fps.init(period=150, mode=Timer.PERIODIC, callback=screenhandler)
+
+#fps = Timer(1)
+#fps.init(period=150, mode=Timer.PERIODIC, callback=screenhandler)
 # timer2: mqttconn
-killme = Timer(3)
-killme.init(period=15000, mode=Timer.ONE_SHOT, callback=shutdown)
+#killme = Timer(3)
+#killme.init(period=15000, mode=Timer.ONE_SHOT, callback=shutdown)
+
 # ----------------------------------------------IO Setup----------------------------------------------------------------
 i2c = I2C(-1, scl=Pin(5), sda=Pin(4))  # Oled screen
 oled_width = 128
@@ -204,15 +220,38 @@ encB = Pin(13, Pin.IN, Pin.PULL_UP)
 encB.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=encmove)
 encbut = Pin(14, Pin.IN)
 encbut.irq(trigger=Pin.IRQ_FALLING, handler=encbutprss)
+#----------------------------------------------Fake timers -------------------------------------------------
+ticktock = screentimer = mqttchecker = utime.ticks_ms()
 
-"""
 def main():
-    if utime.ticks_ms() - ticktock > 15000:
-        shutdown(0)
-"""
+    global screentimer, mqttchecker, ticktock, mqttisready
+    while True:
+        if (utime.ticks_ms() - ticktock > 15000) and youkilledme == 0:
+            shutdown(0)
+        if (utime.ticks_ms() - screentimer > 150):
+            screenhandler(0)
+            screentimer = utime.ticks_ms()
+            #newmsg(0)
 
-# ---------------------------------------------------Main Loop-----------------------------------------------------------
+        if mqttisready == 0 and wlan.isconnected():
+            mqttisready = 1
+        elif mqttisready == 1:
+            mqttconfig(0)
+        elif mqttisready == 2:
+            mqttobject.check_msg()
+            #mqttisready = 3
+        elif mqttisready == 3 and (utime.ticks_ms() - mqttchecker > 150):
+            print(utime.ticks_ms())
+            while mqttobject.check_msg():
+                pass
+            mqttchecker = utime.ticks_ms()
+        machine.idle()
+
+
+    # ---------------------------------------------------Main Loop-----------------------------------------------------------
 if __name__ == '__main__':
-    # main()
-    pass
+    main()
+    #pass
+
+
 # -------------------------------------------------End of Main Loop------------------------------------------------------
